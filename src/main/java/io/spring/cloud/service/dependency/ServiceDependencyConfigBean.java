@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -14,7 +16,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
-import org.springframework.cloud.netflix.ribbon.SpringClientFactory;
 import org.springframework.cloud.netflix.ribbon.ZonePreferenceServerListFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -32,6 +33,8 @@ import com.netflix.loadbalancer.ServerListFilter;
 
 @ConfigurationProperties(prefix = "service-dependency")
 public class ServiceDependencyConfigBean implements SchedulingConfigurer {
+
+	private static Logger logger = LoggerFactory.getLogger(ServiceDependencyConfigBean.class);
 
 	@Value("${spring.application.name}")
 	private String serviceId;
@@ -119,9 +122,11 @@ public class ServiceDependencyConfigBean implements SchedulingConfigurer {
 	}
 
 	private void checkRequireServices() {
+		logger.info("Checking require services");
 		for (String serviceId : getRequires()) {
 			ServiceInstance instance = client.choose(serviceId);
 			if (instance == null) {
+				logger.error("Terminate application");
 				SpringApplication.exit(applicationContext);
 				break;
 			}
@@ -130,6 +135,7 @@ public class ServiceDependencyConfigBean implements SchedulingConfigurer {
 	}
 
 	private void checkDependencyCycle() {
+		logger.info("Checking service dependency cycle");
 		dependencyCycleChecked = false;
 		for (String upstreamId : getRequires()) {
 			List<String> services = new ArrayList<>();
@@ -137,6 +143,7 @@ public class ServiceDependencyConfigBean implements SchedulingConfigurer {
 			try {
 				checkUpstream(services, upstreamId, 1);
 			} catch (ServiceDependencyCycleException e) {
+				logger.error("Terminate application");
 				SpringApplication.exit(applicationContext);
 			} catch (ServiceUnvailableException e) {
 				return;
@@ -148,6 +155,7 @@ public class ServiceDependencyConfigBean implements SchedulingConfigurer {
 	private void checkUpstream(List<String> services, String upstreamId, int level)
 			throws ServiceDependencyCycleException, ServiceUnvailableException {
 		if (services.contains(upstreamId)) {
+			logger.error("Service denpendency cycle was detected");
 			throw new ServiceDependencyCycleException();
 		}
 		ServiceInstance instance = client.choose(upstreamId);
@@ -165,6 +173,7 @@ public class ServiceDependencyConfigBean implements SchedulingConfigurer {
 				}
 			}
 		} else {
+			logger.warn("Service {} is unvailable", upstreamId);
 			throw new ServiceUnvailableException();
 		}
 	}
