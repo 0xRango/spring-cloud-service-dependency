@@ -37,8 +37,12 @@ public class ServiceDependencyUpstreamController {
 	public String dependencyTree() {
 		StringBuffer sb = new StringBuffer();
 		sb.append("+- ").append(serviceId).append("\n");
+		int i = 0;
 		for (String upstreamId : serviceDependencySettings.getRequires()) {
-			sb.append("|  +- ").append(upstreamId).append("\n");
+			if (++i == serviceDependencySettings.getRequires().size())
+				sb.append("   \\- ").append(upstreamId);
+			else
+				sb.append("   +- ").append(upstreamId);
 			List<String> services = new ArrayList<>();
 			services.add(serviceId);
 			checkUpstream(services, upstreamId, 1, sb);
@@ -48,14 +52,12 @@ public class ServiceDependencyUpstreamController {
 
 	private void checkUpstream(List<String> services, String upstreamId, int level, StringBuffer sb) {
 		if (services.contains(upstreamId)) {
-			for (int i = 0; i <= level; i++) {
-				sb.append("|  ");
-			}
-			sb.append("+- ERROR denpendency cycle was detected\n");
+			sb.append(" **ERROR** denpendency cycle was detected\n");
 			return;
 		}
 		ServiceInstance instance = client.choose(upstreamId);
 		if (instance != null) {
+			sb.append("\n");
 			ParameterizedTypeReference<List<String>> ptr = new ParameterizedTypeReference<List<String>>() {
 			};
 			List<String> upstreamDependency = restTemplate
@@ -63,20 +65,22 @@ public class ServiceDependencyUpstreamController {
 							HttpMethod.GET, null, ptr)
 					.getBody();
 			if (upstreamDependency != null) {
+				int i = 0;
 				for (String dependency : upstreamDependency) {
-					for (int i = 0; i <= level; i++) {
-						sb.append("|  ");
+					i++;
+					for (int k = 0; k <= level; k++) {
+						sb.append("   ");
 					}
-					sb.append("+- ").append(dependency).append("\n");
+					if (i == upstreamDependency.size())
+						sb.append("\\- ").append(dependency);
+					else
+						sb.append("+- ").append(dependency);
 					services.add(dependency);
 					checkUpstream(services, dependency, level + 1, sb);
 				}
 			}
 		} else {
-			for (int i = 0; i <= level; i++) {
-				sb.append("|  ");
-			}
-			sb.append("ERROR service instance not found, please retry later");
+			sb.append(" **ERROR** service instance not found, please retry later");
 		}
 	}
 }

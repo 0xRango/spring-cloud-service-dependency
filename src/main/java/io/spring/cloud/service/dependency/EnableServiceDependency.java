@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Import;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@Import({ ServiceDependencyConfigBean.class })
+@Import({ ServiceDependencyConfigBean.class, ServiceDependencyUpstreamController.class })
 public @interface EnableServiceDependency {
 
 }
