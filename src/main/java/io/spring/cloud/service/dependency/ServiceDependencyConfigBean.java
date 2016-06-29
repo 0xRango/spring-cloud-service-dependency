@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -106,9 +107,7 @@ public class ServiceDependencyConfigBean implements SchedulingConfigurer {
 
 	@Override
 	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-		if (isTerminateOnRequiresNotFound()) {
-			taskRegistrar.addTriggerTask(this::checkRequireServices, context -> requiresChecked ? null : defer(5));
-		}
+		taskRegistrar.addTriggerTask(this::checkRequireServices, context -> requiresChecked ? null : defer(10));
 		if (isTerminateOnDependencyCycleFound()) {
 			taskRegistrar.addTriggerTask(this::checkDependencyCycle,
 					context -> dependencyCycleChecked ? null : defer(10));
@@ -123,58 +122,91 @@ public class ServiceDependencyConfigBean implements SchedulingConfigurer {
 
 	private void checkRequireServices() {
 		logger.info("Checking require services");
+		List<String> unavailableServices = new ArrayList<String>();
 		for (String serviceId : getRequires()) {
 			ServiceInstance instance = client.choose(serviceId);
 			if (instance == null) {
-				logger.error("Terminate application");
-				SpringApplication.exit(applicationContext);
-				break;
+				unavailableServices.add(serviceId);
 			}
 		}
-		requiresChecked = true;
+		if (unavailableServices.size() > 0) {
+			logger.warn("The following services are unavailable: {}", StringUtils.join(unavailableServices.toArray(), ","));
+			if (isTerminateOnRequiresNotFound()) {
+				logger.error("Terminate application");
+				SpringApplication.exit(applicationContext);
+			}
+		} else {
+			logger.info("All require services are up");
+			requiresChecked = true;
+		}
 	}
 
 	private void checkDependencyCycle() {
 		logger.info("Checking service dependency cycle");
 		dependencyCycleChecked = false;
-		for (String upstreamId : getRequires()) {
-			List<String> services = new ArrayList<>();
-			services.add(serviceId);
-			try {
-				checkUpstream(services, upstreamId, 1);
-			} catch (ServiceDependencyCycleException e) {
-				logger.error("Terminate application");
-				SpringApplication.exit(applicationContext);
-			} catch (ServiceUnvailableException e) {
-				return;
-			}
+
+		ServiceNode node = travelServiceGraph(serviceId, getRequires(), client, restTemplate);
+
+		logger.info("Service Dependency Tree:\n{}", node.toDependencyTree());
+
+		if (node.isHasDependencyCycle()) {
+			logger.error("Service Dependency Cycle was detected, will terminate application");
+			SpringApplication.exit(applicationContext);
+		} else if (node.isHasUnavaiable()) {
+			logger.error("There are unavailable service, will try dependency check later");
+		} else {
+			dependencyCycleChecked = true;
 		}
-		dependencyCycleChecked = true;
 	}
 
-	private void checkUpstream(List<String> services, String upstreamId, int level)
-			throws ServiceDependencyCycleException, ServiceUnvailableException {
-		if (services.contains(upstreamId)) {
-			logger.error("Service denpendency cycle was detected");
-			throw new ServiceDependencyCycleException();
+	public static ServiceNode travelServiceGraph(String serviceName, List<String> requires, LoadBalancerClient client,
+			RestTemplate restTemplate) {
+		ServiceNode root = new ServiceNode(serviceName);
+		root.setAvaiable(true);
+		for (String upstreamId : requires) {
+			ServiceNode node = new ServiceNode(upstreamId);
+			node.setParent(root);
+			root.getChildren().add(node);
+			checkUpstream(root, node, client, restTemplate);
 		}
-		ServiceInstance instance = client.choose(upstreamId);
+		return root;
+	}
+
+	private static void checkUpstream(ServiceNode root, ServiceNode node, LoadBalancerClient client,
+			RestTemplate restTemplate) {
+		if (checkDependencyCycle(node, new ArrayList<String>())) {
+			node.setDependencyCycleDetected(true);
+			root.setHasDependencyCycle(true);
+			return;
+		}
+		ServiceInstance instance = client.choose(node.getName());
 		if (instance != null) {
+			node.setAvaiable(true);
 			ParameterizedTypeReference<List<String>> ptr = new ParameterizedTypeReference<List<String>>() {
 			};
-			ResponseEntity<List<String>> result = restTemplate.exchange(String.format("http://%s/upstream", upstreamId),
-					HttpMethod.GET, null, ptr);
+			ResponseEntity<List<String>> result = restTemplate
+					.exchange(String.format("http://%s/upstream", node.getName()), HttpMethod.GET, null, ptr);
 			if (result.getStatusCode() == HttpStatus.OK) {
 				List<String> upstreamDependency = result.getBody();
 				if (upstreamDependency != null) {
 					for (String dependency : upstreamDependency) {
-						checkUpstream(services, dependency, level + 1);
+						ServiceNode child = new ServiceNode(dependency);
+						child.setParent(node);
+						node.getChildren().add(child);
+						checkUpstream(root, child, client, restTemplate);
 					}
 				}
 			}
 		} else {
-			logger.warn("Service {} is unvailable", upstreamId);
-			throw new ServiceUnvailableException();
+			root.setHasUnavaiable(true);
 		}
+	}
+
+	private static boolean checkDependencyCycle(ServiceNode node, List<String> services) {
+		if (services.contains(node.getName())) {
+			return true;
+		}
+		services.add(node.getName());
+		return node.getParent() == null ? false : checkDependencyCycle(node.getParent(), services);
 	}
 }
