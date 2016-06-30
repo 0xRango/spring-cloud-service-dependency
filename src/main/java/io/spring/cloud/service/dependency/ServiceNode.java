@@ -8,10 +8,11 @@ public class ServiceNode {
 	private String name;
 	private boolean avaiable;
 	private boolean dependencyCycleDetected;
-	private boolean hasDependencyCycle;
-	private boolean hasUnavaiable;
 	private List<ServiceNode> children = new ArrayList<ServiceNode>();
 	private ServiceNode parent;
+
+	public ServiceNode() {
+	}
 
 	public ServiceNode(String serviceId) {
 		this.name = serviceId;
@@ -57,22 +58,6 @@ public class ServiceNode {
 		this.parent = parent;
 	}
 
-	public boolean isHasDependencyCycle() {
-		return hasDependencyCycle;
-	}
-
-	public void setHasDependencyCycle(boolean hasDependencyCycle) {
-		this.hasDependencyCycle = hasDependencyCycle;
-	}
-
-	public boolean isHasUnavaiable() {
-		return hasUnavaiable;
-	}
-
-	public void setHasUnavaiable(boolean hasUnavaiable) {
-		this.hasUnavaiable = hasUnavaiable;
-	}
-
 	public String toDependencyTree() {
 		return toDependencyTree(0, false);
 	}
@@ -85,10 +70,10 @@ public class ServiceNode {
 			sb.append("\\- ").append(name);
 		else
 			sb.append("+- ").append(name);
-		if (!isAvaiable())
-			sb.append(" **ERROR** Service is unavailable");
 		if (isDependencyCycleDetected())
-			sb.append(" **ERROR** Dependency Cycle is detected");
+			sb.append(" **ERROR** Dependency Cycle detected");
+		else if (!isAvaiable())
+			sb.append(" **ERROR** Service is unavailable");
 		sb.append("\n");
 		int i = 0;
 		for (ServiceNode child : getChildren()) {
