@@ -175,7 +175,7 @@ public class ServiceDependencyConfiguration implements SchedulingConfigurer {
 			ServiceNode upstream = null;
 			try {
 				ResponseEntity<ServiceNode> result = restTemplate.exchange(
-						String.format("http://%s/upstream", upstreamId), HttpMethod.POST, new HttpEntity<>(services),
+						String.format("http://%s/service-dependency/upstream", upstreamId), HttpMethod.POST, new HttpEntity<>(services),
 						ServiceNode.class);
 				if (result.getStatusCode() == HttpStatus.OK) {
 					upstream = result.getBody();

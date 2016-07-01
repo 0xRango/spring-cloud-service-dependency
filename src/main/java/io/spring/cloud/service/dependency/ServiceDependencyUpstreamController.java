@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @RestController
+@RequestMapping("service-dependency")
 public class ServiceDependencyUpstreamController {
 	@Autowired
 	private ServiceDependencyConfigBean config;
@@ -60,7 +60,7 @@ public class ServiceDependencyUpstreamController {
 				} else {
 					try {
 						ResponseEntity<ServiceNode> result = restTemplate.exchange(
-								String.format("http://%s/upstream", upstreamId), HttpMethod.POST,
+								String.format("http://%s/service-dependency/upstream", upstreamId), HttpMethod.POST,
 								new HttpEntity<>(services), ServiceNode.class);
 						if (result.getStatusCode() == HttpStatus.OK) {
 							upstream = result.getBody();
