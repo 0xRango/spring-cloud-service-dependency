@@ -3,13 +3,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.chenyuejie</groupId>
 	<artifactId>spring-cloud-service-dependency</artifactId>
-	<version>1.1.0-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.3.4.RELEASE</version>
+		<version>1.3.5.RELEASE</version>
 		<relativePath />
 	</parent>
 
@@ -77,6 +77,11 @@
 		<developerConnection>scm:git:git@github.com:chenyuejie/spring-cloud-service-dependency.git</developerConnection>
 		<url>https://github.com/chenyuejie/spring-cloud-service-dependency</url>
 	</scm>
+	
+    <ciManagement>
+        <system>travis-ci</system>
+        <url>https://travis-ci.org/chenyuejie/spring-cloud-service-dependency</url>
+    </ciManagement>
 
 	<distributionManagement>
 		<snapshotRepository>
@@ -85,23 +90,4 @@
 		</snapshotRepository>
 	</distributionManagement>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.sonatype.plugins</groupId>
-				<artifactId>nexus-staging-maven-plugin</artifactId>
-				<version>1.6.3</version>
-				<extensions>true</extensions>
-				<configuration>
-					<serverId>sonatype-nexus-snapshots</serverId>
-					<nexusUrl>https://oss.sonatype.org/</nexusUrl>
-					<autoReleaseAfterClose>true</autoReleaseAfterClose>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-	<ciManagement>
-		<system>travis-ci</system>
-		<url>https://travis-ci.org/chenyuejie/spring-cloud-service-dependency</url>
-	</ciManagement>
 </project>
