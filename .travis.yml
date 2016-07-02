@@ -1,4 +1,6 @@
 language: java
+jdk:
+  - oraclejdk8
 
 script: "[ ${TRAVIS_PULL_REQUEST} = 'false' ] && [[ ${TRAVIS_TAG} == '' ]] && mvn clean deploy --settings target/travis/settings.xml || mvn clean verify --settings target/travis/settings.xml"
 
