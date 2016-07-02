@@ -1,5 +1,7 @@
 # spring-cloud-service-dependency
 
+[![Build Status](https://travis-ci.org/chenyuejie/spring-cloud-service-dependency.png)](https://travis-ci.org/chenyuejie/spring-cloud-service-dependency)
+
 Empower spring cloud project with simple service dependency management capability.
 
 ### Features
@@ -8,7 +10,27 @@ Empower spring cloud project with simple service dependency management capabilit
 - Check [dependency cycle](https://en.wikipedia.org/wiki/Circular_dependency) is exist on startup, terminate the application if it is detected(Optional)
 
 ### Configuration
-application.yml of service-b
+
+pom.xml
+
+    ...
+    <repository>
+      <id>ossrh</id>
+      <name>Sonatype OSSRH</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    ...
+    <dependency>
+      <groupId>com.github.chenyuejie</groupId>
+      <artifactId>spring-cloud-service-dependency</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    ...
+
+application.yml
 
     spring:
       application:
