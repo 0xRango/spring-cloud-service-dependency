@@ -9,7 +9,6 @@ public class ServiceNode {
 	private boolean avaiable;
 	private boolean dependencyCycleDetected;
 	private List<ServiceNode> children = new ArrayList<ServiceNode>();
-	private ServiceNode parent;
 
 	public ServiceNode() {
 	}
@@ -48,14 +47,6 @@ public class ServiceNode {
 
 	public void setChildren(List<ServiceNode> children) {
 		this.children = children;
-	}
-
-	public ServiceNode getParent() {
-		return parent;
-	}
-
-	public void setParent(ServiceNode parent) {
-		this.parent = parent;
 	}
 
 	public String toDependencyTree() {

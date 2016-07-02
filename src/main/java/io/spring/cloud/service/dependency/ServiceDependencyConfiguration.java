@@ -101,7 +101,6 @@ public class ServiceDependencyConfiguration implements SchedulingConfigurer {
 			try {
 				instance = client.choose(serviceId);
 			} catch (Exception e) {
-				System.out.println(e);
 			}
 			if (instance == null) {
 				unavailableServices.add(serviceId);
@@ -173,17 +172,27 @@ public class ServiceDependencyConfiguration implements SchedulingConfigurer {
 			List<String> services = new ArrayList<>();
 			services.add(serviceName);
 			ServiceNode upstream = null;
+			ServiceInstance instance = null;
 			try {
-				ResponseEntity<ServiceNode> result = restTemplate.exchange(
-						String.format("http://%s/service-dependency/upstream", upstreamId), HttpMethod.POST, new HttpEntity<>(services),
-						ServiceNode.class);
-				if (result.getStatusCode() == HttpStatus.OK) {
-					upstream = result.getBody();
-				} else {
+				instance = client.choose(upstreamId);
+			} catch (Exception e) {
+			}
+			if (instance != null) {
+				try {
+					ResponseEntity<ServiceNode> result = restTemplate.exchange(
+							String.format("http://%s/service-dependency/upstream", upstreamId), HttpMethod.POST,
+							new HttpEntity<>(services), ServiceNode.class);
+					if (result.getStatusCode() == HttpStatus.OK) {
+						upstream = result.getBody();
+					} else {
+						upstream = new ServiceNode(upstreamId);
+						upstream.setAvaiable(true);
+					}
+				} catch (Exception e) {
 					upstream = new ServiceNode(upstreamId);
 					upstream.setAvaiable(true);
 				}
-			} catch (Exception e) {
+			} else {
 				upstream = new ServiceNode(upstreamId);
 				upstream.setAvaiable(false);
 			}

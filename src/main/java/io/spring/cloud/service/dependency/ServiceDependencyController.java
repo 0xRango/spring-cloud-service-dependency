@@ -20,7 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("service-dependency")
-public class ServiceDependencyUpstreamController {
+public class ServiceDependencyController {
 	@Autowired
 	private ServiceDependencyConfigBean config;
 
@@ -33,7 +33,7 @@ public class ServiceDependencyUpstreamController {
 	@Autowired
 	private RestTemplate restTemplate;
 
-	public ServiceDependencyUpstreamController() {
+	public ServiceDependencyController() {
 		System.out.println("");
 	}
 
