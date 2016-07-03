@@ -16,7 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
-import org.springframework.cloud.netflix.ribbon.SpringClientFactory;
 import org.springframework.cloud.netflix.ribbon.ZonePreferenceServerListFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +27,7 @@ import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.web.client.RestTemplate;
 
+import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.loadbalancer.Server;
 import com.netflix.loadbalancer.ServerListFilter;
 
@@ -58,7 +58,7 @@ public class ServiceDependencyConfiguration implements SchedulingConfigurer {
 	private ApplicationContext applicationContext;
 
 	@Bean
-	public ServerListFilter<Server> ribbonServerListFilter(SpringClientFactory springClientFactory) {
+	public ServerListFilter<Server> ribbonServerListFilter() {
 		ZonePreferenceServerListFilter serverListFilter = new ZonePreferenceServerListFilter() {
 			@Override
 			public List<Server> getFilteredListOfServers(List<Server> servers) {
@@ -68,6 +68,9 @@ public class ServiceDependencyConfiguration implements SchedulingConfigurer {
 				}).collect(Collectors.toList());
 			}
 		};
+		DefaultClientConfigImpl config = new DefaultClientConfigImpl();
+		config.loadProperties(this.clientName);
+		serverListFilter.initWithNiwsConfig(config);
 		return serverListFilter;
 	}
 
